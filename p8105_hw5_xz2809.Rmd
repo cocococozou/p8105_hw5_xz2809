@@ -10,19 +10,19 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 ```
 
+#Problem 1
 ##load files 
 Start with a dataframe containing all file names; the list.files function will help
 ```{r}
 files_df = list.files(path = "./data") %>% 
   as.data.frame()
-
 colnames(files_df) = "subject_id"
 ```
 
-##clean data
+##bind data
 Iterate over file names and read in data for each subject using purrr::map and saving the result as a new variable in the dataframe
 
-```{r}
+```{r message = FALSE}
 read_files = function(x){
     read_csv(paste0("./data/",x))
 }
@@ -35,6 +35,8 @@ for (i in 2:20) {
 }
 mydf <- cbind(files_df, mydf) 
 ```
+
+##tidy
 Tidy the result; manipulate file names to include control arm and subject ID, make sure weekly observations are “tidy”, and do any other tidying that’s necessary
 
 ```{r}
@@ -43,14 +45,24 @@ mydf = mydf %>%
   mutate(week = str_replace(week,"week_",""),
          subject_id = str_replace(subject_id,".csv",""),
          overall_id = factor(subject_id)) %>% 
-  separate(subject_id, into = c("arms", "id"),sep = "_")
+  separate(subject_id, into = c("arms", "id"),sep = "_") %>% 
+  mutate(arms = str_replace(arms,"con","control"),
+         arms = str_replace(arms,"exp","experiment"))
 ```
 Make a spaghetti plot showing observations on each subject over time, and comment on differences between groups.
 
 ```{r}
 mydf %>% 
-  ggplot(aes(x = as.numeric(week), y=as.numeric(value),color = overall_id))+
-  geom_line()
+  ggplot(aes(x = as.numeric(week), y=as.numeric(value)))+
+  facet_grid(~ as.factor(arms)) + 
+  viridis::scale_fill_viridis(discrete = TRUE)+
+  geom_line(aes(color = id))+
+  theme(legend.position = "bottom")+
+  labs(
+    x = "week",
+    y = "value"
+  )+
+  ggtitle("Observations on each subject over time")
 ```
 
 
