@@ -12,7 +12,7 @@ library(tidyverse)
 
 #Problem 1
 ##load files 
-Start with a dataframe containing all file names; the list.files function will help
+Here is the **code chunk** to load files: 
 ```{r}
 files_df = list.files(path = "./data") %>% 
   as.data.frame() 
@@ -22,7 +22,7 @@ colnames(files_df) = "subject_id"
 ```
 
 ##bind data
-Iterate over file names and read in data for each subject using purrr::map and saving the result as a new variable in the dataframe
+Here is the **code chunk** to iterate over files names and read in data for each subject. The result is saved in the data frame "mydf". 
 
 ```{r message = FALSE}
 read_files = function(x){
@@ -40,7 +40,7 @@ mydf <- cbind(files_df, mydf)
 ```
 
 ##tidy
-Tidy the result; manipulate file names to include control arm and subject ID, make sure weekly observations are “tidy”, and do any other tidying that’s necessary
+Here is the **code chunk** to tidy the result and manipulate file names, including control arm and subject ID. 
 
 ```{r}
 mydf = mydf %>% 
@@ -52,7 +52,7 @@ mydf = mydf %>%
   mutate(arms = str_replace(arms,"con","control"),
          arms = str_replace(arms,"exp","experiment"))
 ```
-Make a spaghetti plot showing observations on each subject over time, and comment on differences between groups.
+Here is the **code chunk** to make a spaghetti plot showing observations on each subject over time, and comment on differences between groups.
 
 ```{r}
 mydf %>% 
@@ -68,12 +68,13 @@ mydf %>%
   ggtitle("Observations on each subject over time")
 ```
 
+As we can see from above, the value of control groups floats but overall stay constant, while the value of the experimental increases with repect in weeks. 
+
 
 ##Problem 2
+Here is the **code chunk** to load the data. Then we create a city_state variable and summarize within cities to obtain the total number of homicides and the number of unsolved homicides. 
 
-Create a city_state variable (e.g. “Baltimore, MD”) and then summarize within cities to obtain the total number of homicides and the number of unsolved homicides (those for which the disposition is “Closed without arrest” or “Open/No arrest”).
-
-```{r}
+```{r results = FALSE, message=FALSE, warning=FALSE}
 homiside_df = read_csv("./data/homicide-data.csv") %>% 
   mutate(city_state = paste(city,state,sep=", ")) 
 
@@ -91,7 +92,14 @@ number_homicides = cbind(number_homicides,unsolved) %>%
   select(-cities)
 ```
 
-For the city of Baltimore, MD, use the prop.test function to estimate the proportion of homicides that are unsolved; save the output of prop.test as an R object, apply the broom::tidy to this object and pull the estimated proportion and confidence intervals from the resulting tidy dataframe.
+The raw data set contains in total `r dim(homiside_df)[1]` observations and `r dim(homiside_df)[2]` variables. Each observation represents a case, containing an identification ID, reported date, information about the victim, crime location and disposition status. The total number of homicides and the number of unsolved homicides are shown below.
+
+```{r}
+number_homicides %>% 
+  knitr::kable(digits = 2)
+```
+
+For the city of Baltimore, MD, here is the **code chunk** to use the prop.test function to estimate the proportion of homicides that are unsolved. 
 
 ```{r}
 num_total_ba = subset(number_homicides,city=="Baltimore")$total
@@ -101,9 +109,12 @@ result_ba = prop.test(num_unsolved_ba,num_total_ba) %>%
   broom::tidy() %>% 
   janitor::clean_names() %>% 
   select(estimate,conf_low,conf_high) 
+
+result_ba %>% 
+  knitr::kable(digits = 2)
 ```
 
-Now run prop.test for each of the cities in your dataset, and extract both the proportion of unsolved homicides and the confidence interval for each. Do this within a “tidy” pipeline, making use of purrr::map, purrr::map2, list columns and unnest as necessary to create a tidy dataframe with estimated proportions and CIs for each city.
+Here is the **code chunk** to use prop.test for each of the cities in your dataset, and extract both the proportion of unsolved homicides and the confidence interval for each. Then we list columns and unnest as necessary to create a tidy dataframe with estimated proportions and CIs for each city. The result data frame is shown below
 
 ```{r}
 test = function(x) {
@@ -118,11 +129,13 @@ homicides_nest <- nest(number_homicides, total:unsolved)
 homicides_nest <- homicides_nest %>% 
   mutate(models = map(data,test)) %>% 
   unnest()
+
+homicides_nest %>% 
+  knitr::kable(digits = 2)
 ```
 
 
-Create a plot that shows the estimates and CIs for each city – check out geom_errorbar for a way to add error bars based on the upper and lower limits. Organize cities according to the proportion of unsolved homicides.
-
+Here is the **code chunk** to create a plot that shows the estimates and CIs for each city with the order according to the proportion of unsolved homicides.
 
 ```{r}
 homicides_nest = homicides_nest[order(homicides_nest$estimate),]
@@ -132,7 +145,12 @@ homicides_nest %>%
 ggplot()+
   geom_point(aes(reorder(city,estimate), y = estimate))+
   geom_errorbar(aes(x=city, ymin = conf_low, ymax = conf_high))+
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  labs(
+    title = "Cities vs Proportion of unsolved cases",
+    x = "Cities",
+    y = "Proportion of unsolved cases with 95% CI"
+  )
   
 ```
 
